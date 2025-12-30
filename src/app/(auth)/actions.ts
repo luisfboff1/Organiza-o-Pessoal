@@ -1,0 +1,56 @@
+'use server';
+
+import { createServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+
+type ActionState = {
+  error: string;
+};
+
+export async function signIn(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect('/');
+}
+
+export async function signUp(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  const supabase = await createServerClient();
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect('/');
+}
+
+export async function signOut() {
+  const supabase = await createServerClient();
+  await supabase.auth.signOut();
+  redirect('/login');
+}

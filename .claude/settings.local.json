@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run build:*)",
+      "Bash(timeout 120 pnpm run build:*)",
+      "Bash(timeout 150 pnpm run build:*)",
+      "Bash(timeout 45 pnpm run dev:*)",
+      "Bash(pnpm install)",
+      "Bash(timeout 60 pnpm run start:*)",
+      "Bash(timeout 30 pnpm run start:*)",
+      "Bash(pnpm run start)",
+      "Bash(pnpm add:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(pnpm run dev:*)"
+    ]
+  }
+}
