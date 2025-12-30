@@ -75,7 +75,7 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
           }`}
         >
           <DollarSign className="w-4 h-4" />
-          <span className="text-sm font-medium">Saldo do Período</span>
+          <span className="text-sm font-medium">Resultado do Período</span>
         </div>
         <p
           className={`text-2xl font-bold ${

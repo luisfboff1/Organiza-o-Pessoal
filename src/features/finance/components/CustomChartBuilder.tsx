@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -8,6 +8,9 @@ import {
   Line,
   PieChart,
   Pie,
+  AreaChart,
+  Area,
+  ComposedChart,
   Cell,
   XAxis,
   YAxis,
@@ -28,18 +31,24 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '../lib/currency-formatter';
-import { Plus, Trash2, GripHorizontal } from 'lucide-react';
+import { Plus, Trash2, Settings2 } from 'lucide-react';
 import { useCustomWidgets } from '../hooks/useCustomWidgets';
 import { useParams } from 'next/navigation';
-import { useDebouncedCallback } from 'use-debounce';
+import { ChartConfigModal } from './ChartConfigModal';
 
 interface CustomChart {
   id: string;
   title: string;
-  chartType: 'bar' | 'line' | 'pie';
+  chartType: 'bar' | 'line' | 'pie' | 'area' | 'composed';
   xAxis: string;
   yAxis: string;
-  groupBy?: string;
+  colors?: {
+    primary: string;
+    secondary?: string;
+  };
+  showGrid?: boolean;
+  showLegend?: boolean;
+  height?: number;
   filter?: {
     field: string;
     value: string;
@@ -67,23 +76,16 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
         chartType: w.config.chartType,
         xAxis: w.config.xAxis,
         yAxis: w.config.yAxis,
-        groupBy: w.config.groupBy,
+        colors: w.config.colors,
+        showGrid: w.config.showGrid,
+        showLegend: w.config.showLegend,
+        height: w.config.height,
         filter: w.config.filter,
       }));
   }, [widgets]);
 
-  const [editingChart, setEditingChart] = useState<string | null>(null);
-
-  // Ref para armazenar referências aos cards de gráfico
-  const chartRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  // Debounced callback para salvar dimensões no Supabase
-  const handleResize = useDebouncedCallback((widgetId: string, width: number, height: number) => {
-    updateWidget({
-      widgetId,
-      updates: { width, height },
-    });
-  }, 500);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [editingChart, setEditingChart] = useState<CustomChart | null>(null);
 
   // Extrair categorias únicas
   const uniqueCategories = useMemo(() => {
@@ -94,30 +96,6 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
     return Array.from(categories).sort();
   }, [entries]);
 
-  // ResizeObserver para detectar redimensionamento dos gráficos
-  useEffect(() => {
-    const observers = new Map<string, ResizeObserver>();
-
-    chartWidgets.forEach((chart) => {
-      const element = chartRefs.current.get(chart.id);
-      if (element) {
-        const observer = new ResizeObserver((entries) => {
-          const entry = entries[0];
-          if (entry) {
-            const { width, height } = entry.contentRect;
-            handleResize(chart.id, Math.round(width), Math.round(height));
-          }
-        });
-        observer.observe(element);
-        observers.set(chart.id, observer);
-      }
-    });
-
-    return () => {
-      observers.forEach((observer) => observer.disconnect());
-    };
-  }, [chartWidgets, handleResize]);
-
   const addChart = () => {
     createWidget({
       widgetType: 'chart',
@@ -126,15 +104,29 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
         chartType: 'bar',
         xAxis: 'category',
         yAxis: 'amount',
+        colors: {
+          primary: '#3b82f6',
+          secondary: '#93c5fd',
+        },
+        showGrid: true,
+        showLegend: true,
+        height: 300,
       },
     });
   };
 
-  const updateChart = (id: string, updates: Partial<CustomChart>) => {
-    const widget = widgets.find(w => w.id === id);
+  const handleOpenConfig = (chart: CustomChart) => {
+    setEditingChart(chart);
+    setConfigModalOpen(true);
+  };
+
+  const handleSaveConfig = (updates: Partial<CustomChart>) => {
+    if (!editingChart) return;
+
+    const widget = widgets.find(w => w.id === editingChart.id);
     if (widget) {
       updateWidget({
-        widgetId: id,
+        widgetId: editingChart.id,
         updates: {
           title: updates.title,
           config: {
@@ -182,6 +174,11 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
 
   const renderChart = (chart: CustomChart) => {
     const data = processChartData(chart);
+    const chartHeight = chart.height || 300;
+    const primaryColor = chart.colors?.primary || '#3b82f6';
+    const secondaryColor = chart.colors?.secondary || '#93c5fd';
+    const showGrid = chart.showGrid ?? true;
+    const showLegend = chart.showLegend ?? true;
 
     const CustomTooltip = ({ active, payload }: any) => {
       if (active && payload && payload.length) {
@@ -202,33 +199,83 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
     switch (chart.chartType) {
       case 'bar':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
               <XAxis dataKey="name" className="text-xs" tick={{ fill: 'currentColor' }} />
               <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" fill="#3b82f6" />
+              {showLegend && <Legend />}
+              <Bar dataKey="value" fill={primaryColor} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         );
 
       case 'line':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
               <XAxis dataKey="name" className="text-xs" tick={{ fill: 'currentColor' }} />
               <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} />
+              {showLegend && <Legend />}
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={primaryColor}
+                strokeWidth={2}
+                dot={{ r: 4, fill: primaryColor }}
+                activeDot={{ r: 6, fill: primaryColor }}
+              />
             </LineChart>
+          </ResponsiveContainer>
+        );
+
+      case 'area':
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <AreaChart data={data}>
+              {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
+              <XAxis dataKey="name" className="text-xs" tick={{ fill: 'currentColor' }} />
+              <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+              <Tooltip content={<CustomTooltip />} />
+              {showLegend && <Legend />}
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={primaryColor}
+                fill={primaryColor}
+                fillOpacity={0.6}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        );
+
+      case 'composed':
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <ComposedChart data={data}>
+              {showGrid && <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />}
+              <XAxis dataKey="name" className="text-xs" tick={{ fill: 'currentColor' }} />
+              <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+              <Tooltip content={<CustomTooltip />} />
+              {showLegend && <Legend />}
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={primaryColor}
+                strokeWidth={2}
+                dot={{ r: 4 }}
+              />
+              <Bar dataKey="value" fill={secondaryColor} radius={[4, 4, 0, 0]} />
+            </ComposedChart>
           </ResponsiveContainer>
         );
 
       case 'pie':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
             <PieChart>
               <Pie
                 data={data}
@@ -245,170 +292,11 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
+              {showLegend && <Legend />}
             </PieChart>
           </ResponsiveContainer>
         );
     }
-  };
-
-  const renderChartEditor = (chart: CustomChart) => {
-    return (
-      <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-        <div className="space-y-2">
-          <Label>Título do Gráfico</Label>
-          <Input
-            value={chart.title}
-            onChange={(e) => updateChart(chart.id, { title: e.target.value })}
-            placeholder="Nome do gráfico"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Tipo de Gráfico</Label>
-            <Select
-              value={chart.chartType}
-              onValueChange={(value) =>
-                updateChart(chart.id, { chartType: value as any })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bar">Barra</SelectItem>
-                <SelectItem value="line">Linha</SelectItem>
-                <SelectItem value="pie">Pizza</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Eixo X (Agrupamento)</Label>
-            <Select
-              value={chart.xAxis}
-              onValueChange={(value) => updateChart(chart.id, { xAxis: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="category">Categoria</SelectItem>
-                <SelectItem value="type">Tipo</SelectItem>
-                <SelectItem value="company">Empresa</SelectItem>
-                <SelectItem value="month">Mês</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Eixo Y (Métrica)</Label>
-            <Select
-              value={chart.yAxis}
-              onValueChange={(value) => updateChart(chart.id, { yAxis: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="amount">Valor (R$)</SelectItem>
-                <SelectItem value="count">Contagem</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Filtrar por</Label>
-            <Select
-              value={chart.filter?.field || 'none'}
-              onValueChange={(value) =>
-                updateChart(chart.id, {
-                  filter: value === 'none' ? undefined : { field: value, value: '' },
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem filtro</SelectItem>
-                <SelectItem value="type">Tipo</SelectItem>
-                <SelectItem value="category">Categoria</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {chart.filter && (
-            <div className="space-y-2">
-              <Label>Valor do Filtro</Label>
-              {chart.filter.field === 'category' ? (
-                <>
-                  <Input
-                    type="text"
-                    list="filter-category-options"
-                    placeholder="Selecione ou digite uma categoria"
-                    value={chart.filter.value}
-                    onChange={(e) =>
-                      updateChart(chart.id, {
-                        filter: { ...chart.filter!, value: e.target.value },
-                      })
-                    }
-                  />
-                  <datalist id="filter-category-options">
-                    {uniqueCategories.map((cat) => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
-                </>
-              ) : (
-                <Select
-                  value={chart.filter.value}
-                  onValueChange={(value) =>
-                    updateChart(chart.id, {
-                      filter: { ...chart.filter!, value },
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {chart.filter.field === 'type' && (
-                      <>
-                        <SelectItem value="income">Receita</SelectItem>
-                        <SelectItem value="expense">Despesa</SelectItem>
-                        <SelectItem value="investment">Investimento</SelectItem>
-                        <SelectItem value="balance">Saldo</SelectItem>
-                      </>
-                    )}
-                    {chart.filter.field === 'status' && (
-                      <>
-                        <SelectItem value="paid">Pago</SelectItem>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditingChart(null)}
-          >
-            Fechar
-          </Button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -423,58 +311,43 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {chartWidgets.map(chart => {
-          const widget = widgets.find(w => w.id === chart.id);
-          const savedWidth = widget?.width;
-          const savedHeight = widget?.height;
-
           return (
-            <Card
-              key={chart.id}
-              ref={(el) => {
-                if (el) {
-                  chartRefs.current.set(chart.id, el);
-                } else {
-                  chartRefs.current.delete(chart.id);
-                }
-              }}
-              className="resize overflow-auto min-w-[300px] min-h-[400px]"
-              style={{
-                resize: 'both',
-                width: savedWidth ? `${savedWidth}px` : undefined,
-                height: savedHeight ? `${savedHeight}px` : undefined,
-              }}
-            >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="flex items-center gap-2">
-                <GripHorizontal className="w-4 h-4 text-muted-foreground cursor-move" />
+            <Card key={chart.id} className="overflow-auto">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-base font-medium">{chart.title}</CardTitle>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setEditingChart(editingChart === chart.id ? null : chart.id)
-                  }
-                >
-                  {editingChart === chart.id ? 'Ver' : 'Editar'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteChart(chart.id)}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {editingChart === chart.id ? renderChartEditor(chart) : renderChart(chart)}
-            </CardContent>
-          </Card>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenConfig(chart)}
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteChart(chart.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {renderChart(chart)}
+              </CardContent>
+            </Card>
           );
         })}
       </div>
+
+      {/* Modal de Configuração */}
+      <ChartConfigModal
+        open={configModalOpen}
+        onOpenChange={setConfigModalOpen}
+        config={editingChart}
+        onSave={handleSaveConfig}
+        uniqueCategories={uniqueCategories}
+      />
     </div>
   );
 }

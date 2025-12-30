@@ -19,7 +19,7 @@ export interface CustomWidget {
 export async function getCustomWidgets(workspaceId: string) {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('finance_custom_widgets')
     .select('*')
     .eq('workspace_id', workspaceId)
@@ -49,16 +49,16 @@ export async function createCustomWidget(
   }
 
   // Get max position
-  const { data: widgets } = await supabase
+  const { data: widgets } = await (supabase as any)
     .from('finance_custom_widgets')
     .select('position')
     .eq('workspace_id', workspaceId)
     .order('position', { ascending: false })
     .limit(1);
 
-  const nextPosition = widgets && widgets.length > 0 ? widgets[0].position + 1 : 0;
+  const nextPosition = widgets && widgets.length > 0 ? (widgets[0] as any).position + 1 : 0;
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('finance_custom_widgets')
     .insert({
       workspace_id: workspaceId,
@@ -92,7 +92,7 @@ export async function updateCustomWidget(
 ) {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('finance_custom_widgets')
     .update(updates)
     .eq('id', widgetId)
@@ -109,7 +109,7 @@ export async function updateCustomWidget(
 export async function deleteCustomWidget(widgetId: string) {
   const supabase = await createServerClient();
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('finance_custom_widgets')
     .delete()
     .eq('id', widgetId);

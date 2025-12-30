@@ -6,6 +6,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  getPaginationRowModel,
   flexRender,
   createColumnHelper,
   ColumnFiltersState,
@@ -25,6 +26,10 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { formatCurrency } from '../lib/currency-formatter';
 import {
@@ -47,6 +52,7 @@ interface FinanceEntry {
   company: string;
   note: string;
   recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  recurring_rule_id?: string;
 }
 
 interface FinanceTableAdvancedProps {
@@ -84,7 +90,16 @@ export function FinanceTableAdvanced({
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'date', desc: true }]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    description: false,
+    running_balance: false,
+    company: false,
+    note: false,
+  });
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'income' | 'expense' | 'investment' | 'balance'>('income');
 
@@ -190,24 +205,50 @@ export function FinanceTableAdvanced({
       }),
       columnHelper.accessor('amount', {
         header: 'Valor',
-        size: 130,
-        cell: ({ row, getValue }) => (
-          <input
-            type="number"
-            step="0.01"
-            value={getValue()}
-            onChange={(e) =>
-              onUpdateEntry({
-                entryId: row.original.id,
-                workspaceId,
-                amount: parseFloat(e.target.value),
-              })
-            }
-            className={`w-full bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1 text-right font-medium ${getTypeColor(
-              row.original.type
-            )}`}
-          />
-        ),
+        size: 150,
+        cell: ({ row, getValue }) => {
+          const [isEditing, setIsEditing] = useState(false);
+          const [editValue, setEditValue] = useState('');
+
+          return isEditing ? (
+            <input
+              type="number"
+              step="0.01"
+              value={editValue}
+              autoFocus
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={() => {
+                const num = parseFloat(editValue) || 0;
+                onUpdateEntry({
+                  entryId: row.original.id,
+                  workspaceId,
+                  amount: num,
+                });
+                setIsEditing(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              className={`w-full bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1 text-right font-medium ${getTypeColor(
+                row.original.type
+              )}`}
+            />
+          ) : (
+            <div
+              onClick={() => {
+                setEditValue(getValue().toString());
+                setIsEditing(true);
+              }}
+              className={`cursor-pointer w-full px-2 py-1 text-right font-medium ${getTypeColor(
+                row.original.type
+              )}`}
+            >
+              {formatCurrency(getValue())}
+            </div>
+          );
+        },
       }),
       columnHelper.accessor('running_balance', {
         header: 'Saldo',
@@ -281,25 +322,21 @@ export function FinanceTableAdvanced({
       columnHelper.accessor('recurrence', {
         header: 'Recorrência',
         size: 130,
-        cell: ({ row, getValue }) => (
-          <select
-            value={getValue() || 'none'}
-            onChange={(e) =>
-              onUpdateEntry({
-                entryId: row.original.id,
-                workspaceId,
-                recurrence: e.target.value,
-              })
-            }
-            className="w-full bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1 text-sm"
-          >
-            <option value="none">-</option>
-            <option value="daily">Diária</option>
-            <option value="weekly">Semanal</option>
-            <option value="monthly">Mensal</option>
-            <option value="yearly">Anual</option>
-          </select>
-        ),
+        cell: ({ getValue }) => {
+          const recurrence = getValue() || 'none';
+          const labels: Record<string, string> = {
+            none: '-',
+            daily: 'Diária',
+            weekly: 'Semanal',
+            monthly: 'Mensal',
+            yearly: 'Anual',
+          };
+          return (
+            <span className="text-sm text-muted-foreground px-2 py-1">
+              {labels[recurrence] || '-'}
+            </span>
+          );
+        },
         filterFn: 'equals',
       }),
       columnHelper.display({
@@ -332,14 +369,17 @@ export function FinanceTableAdvanced({
       columnFilters,
       sorting,
       columnVisibility,
+      pagination,
     },
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     enableColumnResizing: true,
     columnResizeMode: 'onChange',
   });
@@ -544,9 +584,55 @@ export function FinanceTableAdvanced({
         </Table>
       </div>
 
-      {/* Info de resultados */}
-      <div className="text-sm text-muted-foreground">
-        {table.getFilteredRowModel().rows.length} de {entries.length} lançamento(s)
+      {/* Info de resultados e paginação */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground">
+          Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} até{' '}
+          {Math.min(
+            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+            table.getFilteredRowModel().rows.length
+          )}{' '}
+          de {table.getFilteredRowModel().rows.length} lançamento(s)
+        </div>
+
+        {/* Controles de paginação */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronsLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm">
+            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <ChevronsRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Modal de adicionar entrada */}

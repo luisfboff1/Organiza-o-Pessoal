@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SmartDateFilter } from './SmartDateFilter';
+import { Input } from '@/components/ui/input';
+import { Calendar, CalendarClock, CalendarRange, Clock } from 'lucide-react';
 
 interface FinanceFiltersProps {
   startDate: string;
@@ -19,6 +21,8 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
+type FilterMode = 'month' | 'year' | 'all' | 'specific-month' | 'custom';
+
 export function FinanceFilters({
   startDate,
   endDate,
@@ -30,124 +34,227 @@ export function FinanceFilters({
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
 
-  const [filterMode, setFilterMode] = useState<'month' | 'custom'>('month');
-
-  // Calcular mês/ano selecionado a partir do startDate
-  const getMonthYearFromStartDate = () => {
-    if (!startDate) return `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-
-    // Parse manual para evitar problemas de timezone
-    const [year, month, day] = startDate.split('-').map(Number);
-    return `${year}-${String(month - 1).padStart(2, '0')}`; // month - 1 porque o índice começa em 0
-  };
-
-  const selectedMonth = getMonthYearFromStartDate();
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [showSpecificMonth, setShowSpecificMonth] = useState(false);
+  const [showCustom, setShowCustom] = useState(false);
 
   // Gerar anos (5 anos para trás e 2 para frente)
   const years = Array.from({ length: 8 }, (_, i) => currentYear - 5 + i);
 
-  const handleMonthChange = (monthYear: string) => {
-    const [year, month] = monthYear.split('-').map(Number);
+  // Detectar qual filtro está ativo baseado nas datas atuais
+  const getActiveFilter = (): FilterMode => {
+    if (!startDate || !endDate) return 'month';
 
-    // Primeiro dia do mês
+    const today = new Date();
+    const start = new Date(startDate + 'T12:00:00');
+    const end = new Date(endDate + 'T12:00:00');
+
+    // Este Mês
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    if (start.toISOString().split('T')[0] === thisMonthStart.toISOString().split('T')[0] &&
+        end.toISOString().split('T')[0] === thisMonthEnd.toISOString().split('T')[0]) {
+      return 'month';
+    }
+
+    // Este Ano
+    const thisYearStart = new Date(today.getFullYear(), 0, 1);
+    const thisYearEnd = new Date(today.getFullYear(), 11, 31);
+    if (start.toISOString().split('T')[0] === thisYearStart.toISOString().split('T')[0] &&
+        end.toISOString().split('T')[0] === thisYearEnd.toISOString().split('T')[0]) {
+      return 'year';
+    }
+
+    // Verificar se é um mês específico (antes de "Todo Tempo" para ter prioridade)
+    const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+    const monthEnd = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+    if (start.toISOString().split('T')[0] === monthStart.toISOString().split('T')[0] &&
+        end.toISOString().split('T')[0] === monthEnd.toISOString().split('T')[0]) {
+      return 'specific-month';
+    }
+
+    // Todo Tempo - verificar se começa em 2020 e vai até hoje ou próximo de hoje
+    const allTimeStart = new Date(2020, 0, 1);
+    const startDateStr = start.toISOString().split('T')[0];
+    const endDateStr = end.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    const allTimeStartStr = allTimeStart.toISOString().split('T')[0];
+
+    if (startDateStr === allTimeStartStr && endDateStr === todayStr) {
+      return 'all';
+    }
+
+    return 'custom';
+  };
+
+  const activeFilter = getActiveFilter();
+
+  const applyFilter = (mode: FilterMode) => {
+    const today = new Date();
+
+    switch (mode) {
+      case 'month':
+        {
+          setShowSpecificMonth(false);
+          setShowCustom(false);
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          onStartDateChange(firstDay.toISOString().split('T')[0]);
+          onEndDateChange(lastDay.toISOString().split('T')[0]);
+        }
+        break;
+      case 'year':
+        {
+          setShowSpecificMonth(false);
+          setShowCustom(false);
+          const firstDay = new Date(today.getFullYear(), 0, 1);
+          const lastDay = new Date(today.getFullYear(), 11, 31);
+          onStartDateChange(firstDay.toISOString().split('T')[0]);
+          onEndDateChange(lastDay.toISOString().split('T')[0]);
+        }
+        break;
+      case 'all':
+        {
+          setShowSpecificMonth(false);
+          setShowCustom(false);
+          const start = new Date(2020, 0, 1);
+          onStartDateChange(start.toISOString().split('T')[0]);
+          onEndDateChange(today.toISOString().split('T')[0]);
+        }
+        break;
+      case 'specific-month':
+        setShowSpecificMonth(true);
+        setShowCustom(false);
+        // Aplicar o mês já selecionado
+        applySpecificMonth(selectedMonth, selectedYear);
+        break;
+      case 'custom':
+        setShowSpecificMonth(false);
+        setShowCustom(true);
+        // Manter as datas atuais
+        break;
+    }
+  };
+
+  const applySpecificMonth = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+
     const firstDay = new Date(year, month, 1);
-    const startDateStr = firstDay.toISOString().split('T')[0];
-
-    // Último dia do mês
     const lastDay = new Date(year, month + 1, 0);
-    const endDateStr = lastDay.toISOString().split('T')[0];
+    onStartDateChange(firstDay.toISOString().split('T')[0]);
+    onEndDateChange(lastDay.toISOString().split('T')[0]);
+  };
 
-    onStartDateChange(startDateStr);
-    onEndDateChange(endDateStr);
+  const getFilterLabel = () => {
+    switch (activeFilter) {
+      case 'month':
+        return 'Este Mês';
+      case 'year':
+        return 'Este Ano';
+      case 'all':
+        return 'Todo Tempo';
+      case 'specific-month':
+        return `${MONTHS[selectedMonth]} ${selectedYear}`;
+      case 'custom':
+        return 'Período Personalizado';
+      default:
+        return '';
+    }
   };
 
   return (
     <div className="border rounded-lg p-4 space-y-4">
-      <h3 className="font-semibold">Filtros da Tabela</h3>
-
-      <div className="space-y-2">
-        <Label>Modo de Filtro</Label>
-        <Select value={filterMode} onValueChange={(v: any) => setFilterMode(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="month">Mês Específico</SelectItem>
-            <SelectItem value="custom">Período Personalizado</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">Filtros</h3>
+        <span className="text-sm text-muted-foreground">{getFilterLabel()}</span>
       </div>
 
-      {filterMode === 'month' ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="month-filter">Mês</Label>
-            <Select
-              value={selectedMonth.split('-')[1]}
-              onValueChange={(month) => {
-                const year = selectedMonth.split('-')[0];
-                handleMonthChange(`${year}-${month}`);
-              }}
-            >
-              <SelectTrigger id="month-filter">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((month, index) => (
-                  <SelectItem key={index} value={String(index).padStart(2, '0')}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Cards de filtro rápido */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={activeFilter === 'month' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => applyFilter('month')}
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Este Mês
+        </Button>
+        <Button
+          variant={activeFilter === 'year' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => applyFilter('year')}
+        >
+          <CalendarRange className="w-4 h-4 mr-2" />
+          Este Ano
+        </Button>
+        <Button
+          variant={activeFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => applyFilter('all')}
+        >
+          <Clock className="w-4 h-4 mr-2" />
+          Todo Tempo
+        </Button>
+        <Button
+          variant={activeFilter === 'specific-month' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => applyFilter('specific-month')}
+        >
+          <CalendarClock className="w-4 h-4 mr-2" />
+          Mês Específico
+        </Button>
+        <Button
+          variant={activeFilter === 'custom' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => applyFilter('custom')}
+        >
+          <CalendarRange className="w-4 h-4 mr-2" />
+          Tempo Personalizado
+        </Button>
+      </div>
 
+      {/* Seleção de mês específico */}
+      {showSpecificMonth && (
+        <div className="pt-2">
           <div className="space-y-2">
-            <Label htmlFor="year-filter">Ano</Label>
-            <Select
-              value={selectedMonth.split('-')[0]}
-              onValueChange={(year) => {
-                const month = selectedMonth.split('-')[1];
-                handleMonthChange(`${year}-${month}`);
+            <Label htmlFor="month-year-select">Selecione o Mês e Ano</Label>
+            <Input
+              id="month-year-select"
+              type="month"
+              value={`${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`}
+              onChange={(e) => {
+                const [year, month] = e.target.value.split('-');
+                applySpecificMonth(parseInt(month) - 1, parseInt(year));
               }}
-            >
-              <SelectTrigger id="year-filter">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              className="max-w-xs"
+            />
           </div>
         </div>
-      ) : (
-        <SmartDateFilter
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={onStartDateChange}
-          onEndDateChange={onEndDateChange}
-        />
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="type-filter">Tipo</Label>
-        <Select value={type} onValueChange={onTypeChange}>
-          <SelectTrigger id="type-filter">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="income">Receitas</SelectItem>
-            <SelectItem value="expense">Despesas</SelectItem>
-            <SelectItem value="investment">Investimentos</SelectItem>
-            <SelectItem value="balance">Saldo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Seleção de período personalizado */}
+      {showCustom && (
+        <div className="pt-2">
+          <Label className="mb-2 block">Selecione o Período</Label>
+          <div className="flex items-center gap-3 max-w-md">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => onStartDateChange(e.target.value)}
+              className="flex-1"
+            />
+            <span className="text-muted-foreground">até</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => onEndDateChange(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

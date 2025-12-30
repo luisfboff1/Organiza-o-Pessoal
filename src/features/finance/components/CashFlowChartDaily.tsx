@@ -81,7 +81,25 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
   const chartData = useMemo(() => {
     if (!dataSource || dataSource.length === 0) return { daily: [] };
 
-    const { startDate, endDate } = getDateRange();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Encontrar o último dia com movimentação antes de hoje
+    const entriesBeforeToday = dataSource
+      .filter(entry => entry.date < todayStr)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    const lastEntryBeforeToday = entriesBeforeToday.length > 0 ? entriesBeforeToday[0] : null;
+
+    // Definir data inicial como o último dia com movimentação antes de hoje, ou hoje se não houver
+    const startDate = lastEntryBeforeToday ? new Date(lastEntryBeforeToday.date) : today;
+    startDate.setHours(0, 0, 0, 0);
+
+    // Definir data final como hoje + 3 meses
+    const endDate = new Date(today);
+    endDate.setMonth(endDate.getMonth() + 3);
+    endDate.setHours(23, 59, 59, 999);
 
     // Calcular saldo acumulado ANTES do período selecionado
     const entriesBeforePeriod = dataSource.filter(entry => {
@@ -156,7 +174,6 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
       });
 
     // Adicionar hoje ao gráfico se estiver no período mas não tiver movimentação
-    const todayStr = new Date().toISOString().split('T')[0];
     if (todayStr >= startDate.toISOString().split('T')[0] &&
         todayStr <= endDate.toISOString().split('T')[0] &&
         !dailyData.has(todayStr)) {
@@ -195,7 +212,7 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
     }
 
     return { daily: dailyArray };
-  }, [dataSource, dateFilter]);
+  }, [dataSource]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -375,7 +392,12 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Fluxo de Caixa Diário</CardTitle>
+            <div>
+              <CardTitle>Fluxo de Caixa Diário</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Exibindo desde a última movimentação até 3 meses a partir de hoje
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -388,9 +410,9 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
         </CardHeader>
         <CardContent className="space-y-4">
           {showSettings && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
               <div className="space-y-2">
-                <Label>Período</Label>
+                <Label>Período do Calendário</Label>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
                   <SelectTrigger>
                     <SelectValue />
@@ -398,7 +420,7 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
                   <SelectContent>
                     <SelectItem value="month">Este Mês</SelectItem>
                     <SelectItem value="next-month">Próximo Mês</SelectItem>
-                    <SelectItem value="3-months">Próximos 3 Meses (de hoje)</SelectItem>
+                    <SelectItem value="3-months">Próximos 3 Meses</SelectItem>
                     <SelectItem value="next-3-months">3 Meses à Frente</SelectItem>
                     <SelectItem value="year">Este Ano</SelectItem>
                     <SelectItem value="all">Todo Tempo</SelectItem>

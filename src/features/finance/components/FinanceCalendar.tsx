@@ -62,17 +62,28 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
     return weekDays;
   }, [entries, weekOffset]);
 
-  const getEntryColor = (type: string) => {
+  const getStatusBackground = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-white dark:bg-slate-800/70 border-gray-200 dark:border-slate-600';
+      case 'pending':
+        return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700';
+      default:
+        return 'bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-600';
+    }
+  };
+
+  const getAmountColor = (type: string) => {
     switch (type) {
       case 'income':
       case 'balance':
-        return 'bg-green-100 dark:bg-green-950 border-green-300 dark:border-green-700 text-green-700 dark:text-green-400';
+        return 'text-green-600 dark:text-green-400';
       case 'expense':
-        return 'bg-red-100 dark:bg-red-950 border-red-300 dark:border-red-700 text-red-700 dark:text-red-400';
+        return 'text-red-600 dark:text-red-400';
       case 'investment':
-        return 'bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400';
+        return 'text-blue-600 dark:text-blue-400';
       default:
-        return 'bg-gray-100 dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-400';
+        return 'text-gray-600 dark:text-gray-400';
     }
   };
 
@@ -168,16 +179,25 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
                 {day.entries.map((entry: any, entryIdx: number) => (
                   <div
                     key={entryIdx}
-                    className={`text-[10px] px-1.5 py-1 rounded border ${getEntryColor(entry.type)}`}
-                    title={`${entry.description || entry.company} - ${formatCurrency(entry.amount)}`}
+                    className={`text-[10px] px-1.5 py-1 rounded border ${getStatusBackground(entry.status || 'paid')}`}
+                    title={`${entry.description || entry.company} - ${formatCurrency(entry.amount)} - ${entry.status === 'paid' ? 'Pago' : 'Pendente'}`}
                   >
-                    <div className="flex items-center gap-1">
-                      {getEntryIcon(entry.type)}
-                      <span className="truncate flex-1">
-                        {entry.description || entry.company || 'Sem descrição'}
+                    <div className="flex items-center gap-1 justify-between">
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
+                        {getEntryIcon(entry.type)}
+                        <span className="truncate text-foreground">
+                          {entry.description || entry.company || 'Sem descrição'}
+                        </span>
+                      </div>
+                      <span className={`text-[9px] px-1 rounded ${
+                        entry.status === 'paid'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
+                      }`}>
+                        {entry.status === 'paid' ? '✓' : '○'}
                       </span>
                     </div>
-                    <div className="font-semibold mt-0.5">
+                    <div className={`font-semibold mt-0.5 ${getAmountColor(entry.type)}`}>
                       {formatCurrency(entry.amount)}
                     </div>
                   </div>

@@ -56,10 +56,10 @@ export async function getFinanceEntries(options: GetEntriesOptions) {
 export async function getFinanceSummary(workspaceId: string, startDate?: string, endDate?: string) {
   const supabase = await createServerClient();
 
-  // Buscar entradas do período para o resumo
+  // Buscar entradas do período para o resumo (TODAS, sem filtrar por status)
   let query = supabase
     .from('finance_entries')
-    .select('type, amount')
+    .select('type, amount, status')
     .eq('workspace_id', workspaceId);
 
   if (startDate) {
@@ -88,12 +88,13 @@ export async function getFinanceSummary(workspaceId: string, startDate?: string,
     .filter((e: any) => e.type === 'investment')
     .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0);
 
-  // Buscar TODAS as entradas até hoje para calcular saldo total
+  // Buscar TODAS as entradas até hoje para calcular saldo total (APENAS PAGAS)
   const today = new Date().toISOString().split('T')[0];
   const { data: allEntries } = await supabase
     .from('finance_entries')
-    .select('type, amount')
+    .select('type, amount, status')
     .eq('workspace_id', workspaceId)
+    .eq('status', 'paid')
     .lte('date', today)
     .order('date', { ascending: true });
 
