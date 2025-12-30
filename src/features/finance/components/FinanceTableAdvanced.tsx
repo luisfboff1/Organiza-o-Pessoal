@@ -39,21 +39,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FinanceEntryDialog } from './FinanceEntryDialog';
-
-interface FinanceEntry {
-  id: string;
-  date: string;
-  description: string;
-  type: 'income' | 'expense' | 'investment' | 'balance';
-  category: string;
-  amount: number;
-  running_balance: number;
-  status: 'paid' | 'pending';
-  company: string;
-  note: string;
-  recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-  recurring_rule_id?: string;
-}
+import { FinanceEntry } from '../types';
 
 interface FinanceTableAdvancedProps {
   entries: FinanceEntry[];

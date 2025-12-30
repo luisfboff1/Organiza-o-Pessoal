@@ -6,13 +6,14 @@ import { createFinanceEntry } from '../actions/create-entry';
 import { updateFinanceEntry } from '../actions/update-entry';
 import { deleteFinanceEntry } from '../actions/delete-entry';
 import { useToast } from '@/hooks/use-toast';
+import { FinanceEntry, FinanceSummary } from '../types';
 
 interface UseFinanceTableOptions {
   workspaceId: string;
   startDate?: string;
   endDate?: string;
   category?: string;
-  type?: 'income' | 'expense';
+  type?: 'income' | 'expense' | 'investment' | 'balance';
   projectId?: string;
 }
 
@@ -20,12 +21,12 @@ export function useFinanceTable(options: UseFinanceTableOptions) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const entriesQuery = useQuery({
+  const entriesQuery = useQuery<FinanceEntry[]>({
     queryKey: ['finance-entries', options],
     queryFn: () => getFinanceEntries(options),
   });
 
-  const summaryQuery = useQuery({
+  const summaryQuery = useQuery<FinanceSummary>({
     queryKey: ['finance-summary', options.workspaceId, options.startDate, options.endDate],
     queryFn: () => getFinanceSummary(options.workspaceId, options.startDate, options.endDate),
   });

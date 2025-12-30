@@ -30,10 +30,11 @@ export default function FinancePage({ params }: { params: Promise<{ workspaceId:
   });
 
   // Buscar TODAS as entradas para os gráficos (sem filtro de data)
-  const { entries: allEntries } = useFinanceTable({
+  const allEntriesResult = useFinanceTable({
     workspaceId,
-    type: typeFilter === 'all' ? undefined : (typeFilter as any),
+    type: typeFilter === 'all' ? undefined : (typeFilter as 'income' | 'expense' | 'investment' | 'balance'),
   });
+  const allEntries = allEntriesResult.entries;
 
   return (
     <div className="h-screen flex flex-col">

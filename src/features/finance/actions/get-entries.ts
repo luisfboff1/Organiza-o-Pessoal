@@ -1,17 +1,18 @@
 'use server';
 
 import { createServerClient } from '@/lib/supabase/server';
+import { FinanceEntry, FinanceSummary } from '../types';
 
 interface GetEntriesOptions {
   workspaceId: string;
   startDate?: string;
   endDate?: string;
   category?: string;
-  type?: 'income' | 'expense';
+  type?: 'income' | 'expense' | 'investment' | 'balance';
   projectId?: string;
 }
 
-export async function getFinanceEntries(options: GetEntriesOptions) {
+export async function getFinanceEntries(options: GetEntriesOptions): Promise<FinanceEntry[]> {
   const supabase = await createServerClient();
 
   let query = supabase
@@ -53,7 +54,7 @@ export async function getFinanceEntries(options: GetEntriesOptions) {
   return entries;
 }
 
-export async function getFinanceSummary(workspaceId: string, startDate?: string, endDate?: string) {
+export async function getFinanceSummary(workspaceId: string, startDate?: string, endDate?: string): Promise<FinanceSummary> {
   const supabase = await createServerClient();
 
   // Buscar entradas do período para o resumo (TODAS, sem filtrar por status)
