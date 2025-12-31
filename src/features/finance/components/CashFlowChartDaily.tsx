@@ -42,6 +42,7 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [showSettings, setShowSettings] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
 
   // Responsive chart configuration
   const chartConfig = useResponsiveChartConfig();
@@ -400,18 +401,18 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
             {showDetails ? (
               <>
                 <Bar dataKey="Receita" fill="#10b981" stackId="a">
-                  {!isMobile && <LabelList content={renderCustomBarLabel} />}
+                  {showLabels && !isMobile && <LabelList content={renderCustomBarLabel} />}
                 </Bar>
                 <Bar dataKey="Despesa" fill="#ef4444" stackId="a">
-                  {!isMobile && <LabelList content={renderCustomBarLabel} />}
+                  {showLabels && !isMobile && <LabelList content={renderCustomBarLabel} />}
                 </Bar>
                 <Bar dataKey="Investimento" fill="#3b82f6" stackId="a">
-                  {!isMobile && <LabelList content={renderCustomBarLabel} />}
+                  {showLabels && !isMobile && <LabelList content={renderCustomBarLabel} />}
                 </Bar>
               </>
             ) : (
               <Bar dataKey="Saldo Acumulado" fill="#8b5cf6">
-                {!isMobile && <LabelList content={renderCustomBarLabel} />}
+                {showLabels && !isMobile && <LabelList content={renderCustomBarLabel} />}
               </Bar>
             )}
           </BarChart>
@@ -536,6 +537,18 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
                   />
                   <label htmlFor="show-details" className="text-sm cursor-pointer">
                     Mostrar Receitas/Despesas/Investimentos
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2 h-10">
+                  <input
+                    type="checkbox"
+                    id="show-labels"
+                    checked={showLabels}
+                    onChange={(e) => setShowLabels(e.target.checked)}
+                    className="w-4 h-4 rounded border-input"
+                  />
+                  <label htmlFor="show-labels" className="text-sm cursor-pointer">
+                    Mostrar Labels nos Valores
                   </label>
                 </div>
               </div>

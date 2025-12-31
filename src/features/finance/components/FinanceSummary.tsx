@@ -37,8 +37,8 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
 
   return (
     <div className="space-y-4 mb-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4 min-w-0">
         <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-2">
           <TrendingUp className="w-4 h-4" />
           <span className="text-xs sm:text-sm font-medium">Receitas</span>
@@ -46,7 +46,7 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
         <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-400">{formatCurrency(summary.income)}</p>
       </div>
 
-      <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4">
+      <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4 min-w-0">
         <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
           <TrendingDown className="w-4 h-4" />
           <span className="text-xs sm:text-sm font-medium">Despesas</span>
@@ -54,7 +54,7 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
         <p className="text-xl sm:text-2xl font-bold text-red-700 dark:text-red-400">{formatCurrency(summary.expense)}</p>
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
+      <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 min-w-0">
         <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-2">
           <PiggyBank className="w-4 h-4" />
           <span className="text-xs sm:text-sm font-medium">Investimentos</span>
@@ -65,7 +65,7 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
       </div>
 
       <div
-        className={`border rounded-lg p-3 sm:p-4 ${
+        className={`border rounded-lg p-3 sm:p-4 min-w-0 ${
           summary.balance >= 0
             ? 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800'
             : 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800'
@@ -89,7 +89,7 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
       </div>
 
       <div
-        className={`border rounded-lg p-3 sm:p-4 ${
+        className={`border rounded-lg p-3 sm:p-4 min-w-0 ${
           (summary.totalBalance || 0) >= 0
             ? 'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800'
             : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
@@ -131,7 +131,7 @@ export function FinanceSummary({ workspaceId, summary, entries = [], startDate, 
               {!isMobile && <span className="ml-2">Adicionar Widget</span>}
             </Button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {summaryWidgets.map((widget) => (
               <FinanceWidget
                 key={widget.id}
