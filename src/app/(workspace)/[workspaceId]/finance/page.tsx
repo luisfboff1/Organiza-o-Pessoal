@@ -58,11 +58,19 @@ export default function FinancePage({ params }: { params: Promise<{ workspaceId:
         />
 
         <Tabs defaultValue="cashflow" className="mt-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
-            <TabsTrigger value="table">Tabela</TabsTrigger>
-            <TabsTrigger value="recurring">Recorrentes</TabsTrigger>
-            <TabsTrigger value="charts">Gráficos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 h-auto">
+            <TabsTrigger value="cashflow" className="text-xs sm:text-sm px-2 sm:px-4">
+              Fluxo de Caixa
+            </TabsTrigger>
+            <TabsTrigger value="table" className="text-xs sm:text-sm px-2 sm:px-4">
+              Tabela
+            </TabsTrigger>
+            <TabsTrigger value="recurring" className="text-xs sm:text-sm px-2 sm:px-4">
+              Recorrentes
+            </TabsTrigger>
+            <TabsTrigger value="charts" className="text-xs sm:text-sm px-2 sm:px-4">
+              Gráficos
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="cashflow" className="mt-4 space-y-6">

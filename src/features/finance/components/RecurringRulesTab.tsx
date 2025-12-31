@@ -19,6 +19,7 @@ import { useRecurringRules } from '../hooks/useRecurringRules';
 import { RecurringRuleDialog } from './RecurringRuleDialog';
 import { RecurringRule } from '../actions/recurring-rules';
 import { formatCurrency } from '../lib/currency-formatter';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 
 interface RecurringRulesTabProps {
   workspaceId: string;
@@ -40,6 +41,7 @@ const TYPE_LABELS = {
 
 export function RecurringRulesTab({ workspaceId, entries = [] }: RecurringRulesTabProps) {
   const { rules, isLoading, toggleRule, deleteRule, regenerateEntries } = useRecurringRules(workspaceId);
+  const { isMobile } = useMobileDetect();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -137,9 +139,9 @@ export function RecurringRulesTab({ workspaceId, entries = [] }: RecurringRulesT
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Regras de Recorrência</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">Regras de Recorrência</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Gerencie lançamentos que se repetem automaticamente
           </p>
@@ -154,13 +156,13 @@ export function RecurringRulesTab({ workspaceId, entries = [] }: RecurringRulesT
                 });
               }}
             >
-              <CalendarPlus className="w-4 h-4 mr-2" />
-              Regenerar Todas
+              <CalendarPlus className="w-4 h-4" />
+              {!isMobile && <span className="ml-2">Regenerar Todas</span>}
             </Button>
           )}
           <Button onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Regra
+            <Plus className="w-4 h-4" />
+            {!isMobile && <span className="ml-2">Nova Regra</span>}
           </Button>
         </div>
       </div>
@@ -240,7 +242,7 @@ export function RecurringRulesTab({ workspaceId, entries = [] }: RecurringRulesT
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Categoria:</span>
                     <p className="font-medium">{rule.category}</p>

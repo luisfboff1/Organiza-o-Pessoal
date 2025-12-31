@@ -35,6 +35,8 @@ import { Plus, Trash2, Settings2 } from 'lucide-react';
 import { useCustomWidgets } from '../hooks/useCustomWidgets';
 import { useParams } from 'next/navigation';
 import { ChartConfigModal } from './ChartConfigModal';
+import { useResponsiveChartConfig } from '../hooks/useResponsiveChartConfig';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 
 interface CustomChart {
   id: string;
@@ -174,7 +176,9 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
 
   const renderChart = (chart: CustomChart) => {
     const data = processChartData(chart);
-    const chartHeight = chart.height || 300;
+    const chartConfig = useResponsiveChartConfig(chart.height);
+    const { isMobile } = useMobileDetect();
+    const chartHeight = chartConfig.height;
     const primaryColor = chart.colors?.primary || '#3b82f6';
     const secondaryColor = chart.colors?.secondary || '#93c5fd';
     const showGrid = chart.showGrid ?? true;
@@ -282,8 +286,11 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
+                label={isMobile
+                  ? ({ percent }) => `${(percent * 100).toFixed(0)}%`
+                  : ({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`
+                }
+                outerRadius={chartConfig.pieRadius}
                 fill="#8884d8"
                 dataKey="value"
               >
@@ -309,11 +316,11 @@ export function CustomChartBuilder({ entries }: CustomChartBuilderProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {chartWidgets.map(chart => {
           return (
             <Card key={chart.id} className="overflow-auto">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
                 <CardTitle className="text-base font-medium">{chart.title}</CardTitle>
                 <div className="flex gap-2">
                   <Button

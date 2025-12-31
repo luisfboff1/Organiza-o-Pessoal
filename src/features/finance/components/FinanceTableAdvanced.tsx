@@ -40,6 +40,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FinanceEntryDialog } from './FinanceEntryDialog';
 import { FinanceEntry } from '../types';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { cn } from '@/lib/utils';
 
 interface FinanceTableAdvancedProps {
   entries: FinanceEntry[];
@@ -88,6 +90,8 @@ export function FinanceTableAdvanced({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'income' | 'expense' | 'investment' | 'balance'>('income');
+
+  const { isMobile } = useMobileDetect();
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -378,22 +382,22 @@ export function FinanceTableAdvanced({
   return (
     <div className="space-y-4">
       {/* Botões de adicionar */}
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => handleOpenDialog('income')} size="sm" variant="outline" className="gap-2">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <Button onClick={() => handleOpenDialog('income')} size="sm" variant="outline" className="gap-1 sm:gap-2 justify-center">
           <Plus className="w-4 h-4" />
-          Adicionar Receita
+          {isMobile ? "Receita" : "Adicionar Receita"}
         </Button>
-        <Button onClick={() => handleOpenDialog('expense')} size="sm" variant="outline" className="gap-2">
+        <Button onClick={() => handleOpenDialog('expense')} size="sm" variant="outline" className="gap-1 sm:gap-2 justify-center">
           <Plus className="w-4 h-4" />
-          Adicionar Despesa
+          {isMobile ? "Despesa" : "Adicionar Despesa"}
         </Button>
-        <Button onClick={() => handleOpenDialog('investment')} size="sm" variant="outline" className="gap-2">
+        <Button onClick={() => handleOpenDialog('investment')} size="sm" variant="outline" className="gap-1 sm:gap-2 justify-center">
           <Plus className="w-4 h-4" />
-          Adicionar Investimento
+          {isMobile ? "Investim." : "Adicionar Investimento"}
         </Button>
-        <Button onClick={() => handleOpenDialog('balance')} size="sm" variant="outline" className="gap-2">
+        <Button onClick={() => handleOpenDialog('balance')} size="sm" variant="outline" className="gap-1 sm:gap-2 justify-center">
           <Plus className="w-4 h-4" />
-          Adicionar Saldo
+          {isMobile ? "Saldo" : "Adicionar Saldo"}
         </Button>
       </div>
 
@@ -410,14 +414,15 @@ export function FinanceTableAdvanced({
           />
         </div>
 
-        {/* Controle de visibilidade de colunas */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings2 className="w-4 h-4" />
-              Colunas
-            </Button>
-          </DropdownMenuTrigger>
+        {/* Controle de visibilidade de colunas - Desktop only */}
+        {!isMobile && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="w-4 h-4" />
+                Colunas
+              </Button>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             {table
               .getAllColumns()
@@ -435,9 +440,10 @@ export function FinanceTableAdvanced({
               })}
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </div>
 
-      {/* Tabela com scroll horizontal responsivo */}
+      {/* Tabela de entradas */}
       <div className="border rounded-lg overflow-auto">
         <Table>
           <TableHeader>
@@ -573,12 +579,25 @@ export function FinanceTableAdvanced({
       {/* Info de resultados e paginação */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">
-          Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} até{' '}
-          {Math.min(
-            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            table.getFilteredRowModel().rows.length
-          )}{' '}
-          de {table.getFilteredRowModel().rows.length} lançamento(s)
+          {isMobile ? (
+            <>
+              {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}{' '}
+              de {table.getFilteredRowModel().rows.length}
+            </>
+          ) : (
+            <>
+              Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} até{' '}
+              {Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )}{' '}
+              de {table.getFilteredRowModel().rows.length} lançamento(s)
+            </>
+          )}
         </div>
 
         {/* Controles de paginação */}
@@ -588,6 +607,7 @@ export function FinanceTableAdvanced({
             size="sm"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
+            className="hidden sm:flex"
           >
             <ChevronsLeft className="w-4 h-4" />
           </Button>
@@ -615,6 +635,7 @@ export function FinanceTableAdvanced({
             size="sm"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
+            className="hidden sm:flex"
           >
             <ChevronsRight className="w-4 h-4" />
           </Button>

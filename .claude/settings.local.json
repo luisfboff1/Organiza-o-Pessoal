@@ -11,7 +11,9 @@
       "Bash(pnpm run start)",
       "Bash(pnpm add:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(pnpm run dev:*)"
+      "Bash(pnpm run dev:*)",
+      "Bash(dir:*)",
+      "Bash(grep:*)"
     ]
   }
 }

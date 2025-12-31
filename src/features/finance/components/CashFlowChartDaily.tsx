@@ -28,6 +28,9 @@ import {
 } from '@/components/ui/select';
 import { Settings2 } from 'lucide-react';
 import { FinanceCalendar } from './FinanceCalendar';
+import { useResponsiveChartConfig } from '../hooks/useResponsiveChartConfig';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { cn } from '@/lib/utils';
 
 interface CashFlowChartDailyProps {
   entries: any[];
@@ -39,6 +42,13 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
   const [showSettings, setShowSettings] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Responsive chart configuration
+  const chartConfig = useResponsiveChartConfig();
+  const { isMobile } = useMobileDetect();
+
+  // No mobile, sempre usar gráfico de linha
+  const effectiveChartType = isMobile ? 'line' : chartType;
 
   // Usar allEntries se disponível, senão usar entries
   const dataSource = allEntries || entries;
@@ -92,8 +102,26 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
 
     const lastEntryBeforeToday = entriesBeforeToday.length > 0 ? entriesBeforeToday[0] : null;
 
-    // Definir data inicial como o último dia com movimentação antes de hoje, ou hoje se não houver
-    const startDate = lastEntryBeforeToday ? new Date(lastEntryBeforeToday.date) : today;
+    // Definir data inicial como o último dia com movimentação antes de hoje
+    // Mas limitar a no máximo 7 dias antes para evitar que "Hoje" fique cortado
+    let startDate = today;
+    if (lastEntryBeforeToday) {
+      const lastDate = new Date(lastEntryBeforeToday.date);
+      const daysDiff = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (daysDiff <= 7) {
+        // Se a última movimentação foi nos últimos 7 dias, usar ela
+        startDate = lastDate;
+      } else {
+        // Se foi há mais de 7 dias, começar de 7 dias atrás
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+      }
+    } else {
+      // Se não houver movimentação anterior, começar de 7 dias atrás
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 7);
+    }
     startDate.setHours(0, 0, 0, 0);
 
     // Definir data final como hoje + 3 meses
@@ -214,6 +242,28 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
     return { daily: dailyArray };
   }, [dataSource]);
 
+  // Pré-calcular quais datas devem mostrar o label mês/ano no eixo X
+  const monthYearLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    let lastMonthYear = '';
+
+    chartData.daily.forEach((dataPoint: any, index: number) => {
+      const fullDate = new Date(dataPoint.date + 'T12:00:00');
+      const monthYear = fullDate.toLocaleDateString('pt-BR', {
+        month: 'short',
+        year: '2-digit',
+      }).replace(/\./g, '/');
+
+      // Sempre adicionar o primeiro label, depois só quando muda
+      if (index === 0 || monthYear !== lastMonthYear) {
+        labels.set(dataPoint.dateFormatted, monthYear);
+        lastMonthYear = monthYear;
+      }
+    });
+
+    return labels;
+  }, [chartData.daily]);
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -225,8 +275,11 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
       const investments = entries.filter((e: any) => e.type === 'investment');
 
       return (
-        <div className="bg-card border rounded-lg p-3 shadow-lg max-w-xs">
-          <p className="font-semibold text-card-foreground mb-2">{data.dateFormatted}</p>
+        <div className={cn(
+          "bg-card border rounded-lg shadow-lg",
+          isMobile ? "p-2 max-w-[200px]" : "p-3 max-w-xs"
+        )}>
+          <p className={cn("font-semibold text-card-foreground mb-2", isMobile ? "text-xs" : "text-sm")}>{data.dateFormatted}</p>
 
           {incomes.length > 0 && (
             <div className="mb-2">
@@ -285,7 +338,8 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
         y={isNegative ? y + height + 15 : y - 5}
         fill="hsl(var(--foreground))"
         textAnchor="middle"
-        fontSize="10"
+        fontSize={isMobile ? "11" : "12"}
+        fontWeight="500"
       >
         {displayValue}
       </text>
@@ -305,17 +359,29 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
       month: 'short',
     });
 
-    if (chartType === 'bar') {
+    // Formatter customizado para eixo X: mostra mês/ano apenas quando muda
+    const xAxisTickFormatter = (value: string) => {
+      return monthYearLabels.get(value) || '';
+    };
+
+    if (effectiveChartType === 'bar') {
       return (
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart {...commonProps}>
+        <ResponsiveContainer width="100%" height={chartConfig.height}>
+          <BarChart
+            {...commonProps}
+            margin={isMobile
+              ? { top: 20, right: 10, left: -20, bottom: 5 }
+              : { top: 20, right: 30, left: 0, bottom: 5 }
+            }
+          >
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis
               dataKey="dateFormatted"
               className="text-xs"
               tick={{ fill: 'currentColor' }}
+              tickFormatter={xAxisTickFormatter}
             />
-            <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+            {!isMobile && <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />}
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             <ReferenceLine y={0} stroke="#666" />
@@ -324,23 +390,28 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
               stroke="#ef4444"
               strokeWidth={2}
               strokeDasharray="5 5"
-              label={{ value: 'Hoje', position: 'top', fill: '#ef4444', fontSize: 12 }}
+              label={{
+                value: 'Hoje',
+                position: isMobile ? 'insideTopLeft' : 'top',
+                fill: '#ef4444',
+                fontSize: isMobile ? 10 : 12
+              }}
             />
             {showDetails ? (
               <>
                 <Bar dataKey="Receita" fill="#10b981" stackId="a">
-                  <LabelList content={renderCustomBarLabel} />
+                  {!isMobile && <LabelList content={renderCustomBarLabel} />}
                 </Bar>
                 <Bar dataKey="Despesa" fill="#ef4444" stackId="a">
-                  <LabelList content={renderCustomBarLabel} />
+                  {!isMobile && <LabelList content={renderCustomBarLabel} />}
                 </Bar>
                 <Bar dataKey="Investimento" fill="#3b82f6" stackId="a">
-                  <LabelList content={renderCustomBarLabel} />
+                  {!isMobile && <LabelList content={renderCustomBarLabel} />}
                 </Bar>
               </>
             ) : (
               <Bar dataKey="Saldo Acumulado" fill="#8b5cf6">
-                <LabelList content={renderCustomBarLabel} />
+                {!isMobile && <LabelList content={renderCustomBarLabel} />}
               </Bar>
             )}
           </BarChart>
@@ -349,15 +420,22 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
     }
 
     return (
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart {...commonProps}>
+      <ResponsiveContainer width="100%" height={chartConfig.height}>
+        <LineChart
+          {...commonProps}
+          margin={isMobile
+            ? { top: 20, right: 10, left: -20, bottom: 5 }
+            : { top: 20, right: 30, left: 0, bottom: 5 }
+          }
+        >
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis
             dataKey="dateFormatted"
             className="text-xs"
             tick={{ fill: 'currentColor' }}
+            tickFormatter={xAxisTickFormatter}
           />
-          <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+          {!isMobile && <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />}
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <ReferenceLine y={0} stroke="#666" />
@@ -366,7 +444,12 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
             stroke="#ef4444"
             strokeWidth={2}
             strokeDasharray="5 5"
-            label={{ value: 'Hoje', position: 'top', fill: '#ef4444', fontSize: 12 }}
+            label={{
+              value: 'Hoje',
+              position: isMobile ? 'insideTopLeft' : 'top',
+              fill: '#ef4444',
+              fontSize: isMobile ? 10 : 12
+            }}
           />
           {showDetails ? (
             <>
@@ -403,12 +486,12 @@ export function CashFlowChartDaily({ entries, allEntries }: CashFlowChartDailyPr
               size="sm"
               onClick={() => setShowSettings(!showSettings)}
             >
-              <Settings2 className="w-4 h-4 mr-2" />
-              Configurar
+              <Settings2 className="w-4 h-4" />
+              {!isMobile && <span className="ml-2">Configurar</span>}
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2 sm:space-y-4 p-3 sm:p-6">
           {showSettings && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
               <div className="space-y-2">

@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Calendar, CalendarClock, CalendarRange, Clock } from 'lucide-react';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { cn } from '@/lib/utils';
 
 interface FinanceFiltersProps {
   startDate: string;
@@ -38,6 +40,8 @@ export function FinanceFilters({
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showSpecificMonth, setShowSpecificMonth] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
+
+  const { isMobile } = useMobileDetect();
 
   // Gerar anos (5 anos para trás e 2 para frente)
   const years = Array.from({ length: 8 }, (_, i) => currentYear - 5 + i);
@@ -172,46 +176,61 @@ export function FinanceFilters({
       </div>
 
       {/* Cards de filtro rápido */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
         <Button
           variant={activeFilter === 'month' ? 'default' : 'outline'}
           size="sm"
           onClick={() => applyFilter('month')}
+          className="justify-center"
         >
-          <Calendar className="w-4 h-4 mr-2" />
-          Este Mês
+          <Calendar className="w-4 h-4" />
+          <span className={cn(isMobile && "ml-1", !isMobile && "ml-2")}>
+            {isMobile ? "Mês" : "Este Mês"}
+          </span>
         </Button>
         <Button
           variant={activeFilter === 'year' ? 'default' : 'outline'}
           size="sm"
           onClick={() => applyFilter('year')}
+          className="justify-center"
         >
-          <CalendarRange className="w-4 h-4 mr-2" />
-          Este Ano
+          <CalendarRange className="w-4 h-4" />
+          <span className={cn(isMobile && "ml-1", !isMobile && "ml-2")}>
+            {isMobile ? "Ano" : "Este Ano"}
+          </span>
         </Button>
         <Button
           variant={activeFilter === 'all' ? 'default' : 'outline'}
           size="sm"
           onClick={() => applyFilter('all')}
+          className="justify-center"
         >
-          <Clock className="w-4 h-4 mr-2" />
-          Todo Tempo
+          <Clock className="w-4 h-4" />
+          <span className={cn(isMobile && "ml-1", !isMobile && "ml-2")}>
+            {isMobile ? "Tudo" : "Todo Tempo"}
+          </span>
         </Button>
         <Button
           variant={activeFilter === 'specific-month' ? 'default' : 'outline'}
           size="sm"
           onClick={() => applyFilter('specific-month')}
+          className="justify-center"
         >
-          <CalendarClock className="w-4 h-4 mr-2" />
-          Mês Específico
+          <CalendarClock className="w-4 h-4" />
+          <span className={cn(isMobile && "ml-1", !isMobile && "ml-2")}>
+            {isMobile ? "Mês Esp." : "Mês Específico"}
+          </span>
         </Button>
         <Button
           variant={activeFilter === 'custom' ? 'default' : 'outline'}
           size="sm"
           onClick={() => applyFilter('custom')}
+          className="justify-center"
         >
-          <CalendarRange className="w-4 h-4 mr-2" />
-          Tempo Personalizado
+          <CalendarRange className="w-4 h-4" />
+          <span className={cn(isMobile && "ml-1", !isMobile && "ml-2")}>
+            {isMobile ? "Custom" : "Tempo Personalizado"}
+          </span>
         </Button>
       </div>
 
@@ -228,7 +247,7 @@ export function FinanceFilters({
                 const [year, month] = e.target.value.split('-');
                 applySpecificMonth(parseInt(month) - 1, parseInt(year));
               }}
-              className="max-w-xs"
+              className="w-full"
             />
           </div>
         </div>
@@ -238,19 +257,19 @@ export function FinanceFilters({
       {showCustom && (
         <div className="pt-2">
           <Label className="mb-2 block">Selecione o Período</Label>
-          <div className="flex items-center gap-3 max-w-md">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
             <Input
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="flex-1"
+              className="flex-1 min-w-0"
             />
-            <span className="text-muted-foreground">até</span>
+            <span className="text-muted-foreground text-center sm:text-left">até</span>
             <Input
               type="date"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="flex-1"
+              className="flex-1 min-w-0"
             />
           </div>
         </div>

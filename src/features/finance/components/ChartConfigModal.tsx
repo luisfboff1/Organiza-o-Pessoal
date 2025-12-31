@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
+import { cn } from '@/lib/utils';
 
 interface ChartConfig {
   id: string;
@@ -68,6 +70,8 @@ export function ChartConfigModal({
   const [filterField, setFilterField] = useState('none');
   const [filterValue, setFilterValue] = useState('');
 
+  const { isMobile } = useMobileDetect();
+
   useEffect(() => {
     if (config) {
       setTitle(config.title);
@@ -118,7 +122,7 @@ export function ChartConfigModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg lg:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Configurar Gráfico</DialogTitle>
         </DialogHeader>
@@ -154,7 +158,7 @@ export function ChartConfigModal({
 
           {/* Eixos (não mostrar para pie) */}
           {chartType !== 'pie' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="xAxis">Eixo X (Agrupamento)</Label>
                 <Select value={xAxis} onValueChange={setXAxis}>
@@ -195,7 +199,7 @@ export function ChartConfigModal({
             </div>
 
             {useCustomColors ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="primaryColor">Cor Primária</Label>
                   <div className="flex gap-2">
@@ -234,24 +238,25 @@ export function ChartConfigModal({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {Object.entries(COLOR_PRESETS).map(([key, colors]) => (
                   <button
                     key={key}
                     onClick={() => setColorPreset(key)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
+                    className={cn(
+                      "p-2 sm:p-3 rounded-lg border-2 transition-all",
                       colorPreset === key
                         ? 'border-primary ring-2 ring-primary/20'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    )}
                   >
                     <div className="flex gap-1 mb-1">
                       <div
-                        className="w-6 h-6 rounded"
+                        className="w-5 h-5 sm:w-6 sm:h-6 rounded"
                         style={{ backgroundColor: colors.primary }}
                       />
                       <div
-                        className="w-6 h-6 rounded"
+                        className="w-5 h-5 sm:w-6 sm:h-6 rounded"
                         style={{ backgroundColor: colors.secondary }}
                       />
                     </div>
@@ -296,7 +301,7 @@ export function ChartConfigModal({
           {/* Filtros */}
           <div className="space-y-3">
             <Label>Filtros</Label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="filterField">Filtrar por</Label>
                 <Select value={filterField} onValueChange={setFilterField}>

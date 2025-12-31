@@ -5,6 +5,7 @@ import { formatCurrency } from '../lib/currency-formatter';
 import { TrendingUp, TrendingDown, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useMobileDetect } from '@/hooks/useMobileDetect';
 
 interface FinanceCalendarProps {
   entries: any[];
@@ -15,17 +16,10 @@ interface FinanceCalendarProps {
 export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendarProps) {
   // Estado para controlar qual semana está sendo exibida (0 = semana atual)
   const [weekOffset, setWeekOffset] = useState(0);
+  const { isMobile } = useMobileDetect();
   const currentWeekData = useMemo(() => {
-    // Encontrar o domingo da semana atual (ou do offset)
     const today = new Date();
     const todayDay = today.getDay(); // 0 = domingo, 1 = segunda, etc.
-
-    // Encontrar o domingo da semana atual
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - todayDay);
-
-    // Aplicar o offset de semanas
-    currentWeekStart.setDate(currentWeekStart.getDate() + (weekOffset * 7));
 
     // Agrupar entradas por dia
     const entriesByDate = new Map<string, any[]>();
@@ -37,30 +31,58 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
       entriesByDate.get(dateKey)!.push(entry);
     });
 
-    // Criar array com os 7 dias da semana
+    const todayStr = today.toISOString().split('T')[0];
     const weekDays = [];
-    const todayStr = new Date().toISOString().split('T')[0];
 
-    for (let i = 0; i < 7; i++) {
-      const current = new Date(currentWeekStart);
-      current.setDate(currentWeekStart.getDate() + i);
+    if (isMobile) {
+      // Mobile: mostrar apenas 3 dias (ontem, hoje, amanhã)
+      const baseDate = new Date(today);
+      baseDate.setDate(baseDate.getDate() + (weekOffset * 3) - 1); // Começa de ontem
 
-      const dateStr = current.toISOString().split('T')[0];
-      const dayEntries = entriesByDate.get(dateStr) || [];
+      for (let i = 0; i < 3; i++) {
+        const current = new Date(baseDate);
+        current.setDate(baseDate.getDate() + i);
 
-      weekDays.push({
-        date: new Date(current),
-        dateStr,
-        entries: dayEntries,
-        dayOfWeek: current.getDay(),
-        dayOfMonth: current.getDate(),
-        month: current.toLocaleDateString('pt-BR', { month: 'short' }),
-        isToday: dateStr === todayStr,
-      });
+        const dateStr = current.toISOString().split('T')[0];
+        const dayEntries = entriesByDate.get(dateStr) || [];
+
+        weekDays.push({
+          date: new Date(current),
+          dateStr,
+          entries: dayEntries,
+          dayOfWeek: current.getDay(),
+          dayOfMonth: current.getDate(),
+          month: current.toLocaleDateString('pt-BR', { month: 'short' }),
+          isToday: dateStr === todayStr,
+        });
+      }
+    } else {
+      // Desktop: mostrar 7 dias da semana
+      const currentWeekStart = new Date(today);
+      currentWeekStart.setDate(today.getDate() - todayDay);
+      currentWeekStart.setDate(currentWeekStart.getDate() + (weekOffset * 7));
+
+      for (let i = 0; i < 7; i++) {
+        const current = new Date(currentWeekStart);
+        current.setDate(currentWeekStart.getDate() + i);
+
+        const dateStr = current.toISOString().split('T')[0];
+        const dayEntries = entriesByDate.get(dateStr) || [];
+
+        weekDays.push({
+          date: new Date(current),
+          dateStr,
+          entries: dayEntries,
+          dayOfWeek: current.getDay(),
+          dayOfMonth: current.getDate(),
+          month: current.toLocaleDateString('pt-BR', { month: 'short' }),
+          isToday: dateStr === todayStr,
+        });
+      }
     }
 
     return weekDays;
-  }, [entries, weekOffset]);
+  }, [entries, weekOffset, isMobile]);
 
   const getStatusBackground = (status: string) => {
     switch (status) {
@@ -91,35 +113,37 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
     switch (type) {
       case 'income':
       case 'balance':
-        return <TrendingUp className="w-3 h-3" />;
+        return <TrendingUp className="w-4 h-4" />;
       case 'expense':
-        return <TrendingDown className="w-3 h-3" />;
+        return <TrendingDown className="w-4 h-4" />;
       case 'investment':
-        return <PiggyBank className="w-3 h-3" />;
+        return <PiggyBank className="w-4 h-4" />;
       default:
         return null;
     }
   };
 
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const allWeekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  // Pegar apenas os dias necessários baseado no currentWeekData
+  const weekDays = currentWeekData.map(day => allWeekDays[day.dayOfWeek]);
 
   // Formatar período da semana exibida
   const weekPeriod = currentWeekData.length > 0
-    ? `${currentWeekData[0].date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} - ${currentWeekData[6].date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`
+    ? `${currentWeekData[0].date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} - ${currentWeekData[currentWeekData.length - 1].date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`
     : '';
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Calendário de Movimentações</CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{weekPeriod}</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="text-lg sm:text-xl">Calendário de Movimentações</CardTitle>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs sm:text-sm text-muted-foreground flex-1 sm:flex-none">{weekPeriod}</span>
             <div className="flex gap-1">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8"
+                className="h-9 w-9"
                 onClick={() => setWeekOffset(weekOffset - 1)}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -127,7 +151,7 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8"
+                className="h-9"
                 onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
               >
@@ -136,7 +160,7 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8"
+                className="h-9 w-9"
                 onClick={() => setWeekOffset(weekOffset + 1)}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -147,31 +171,31 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
       </CardHeader>
       <CardContent>
         {/* Header com dias da semana */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
+        <div className={`grid ${isMobile ? 'grid-cols-3' : 'grid-cols-7'} gap-2 mb-2`}>
           {weekDays.map((day, idx) => (
-            <div key={idx} className="text-center text-xs font-semibold text-muted-foreground py-2">
+            <div key={idx} className="text-center text-sm sm:text-base font-semibold text-muted-foreground py-2">
               {day}
             </div>
           ))}
         </div>
 
         {/* Grid de dias */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className={`grid ${isMobile ? 'grid-cols-3' : 'grid-cols-7'} gap-2`}>
           {currentWeekData.map((day, idx) => (
             <div
               key={idx}
-              className={`min-h-[120px] border rounded-lg p-2 ${
+              className={`min-h-[120px] border rounded-lg p-2 sm:p-3 ${
                 day.isToday
                   ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
                   : 'border-border bg-card'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className={`text-xs font-semibold ${day.isToday ? 'text-red-600' : 'text-muted-foreground'}`}>
+                <span className={`text-sm sm:text-base font-semibold ${day.isToday ? 'text-red-600' : 'text-muted-foreground'}`}>
                   {day.dayOfMonth}
                 </span>
                 {day.dayOfMonth === 1 && (
-                  <span className="text-[10px] text-muted-foreground">{day.month}</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">{day.month}</span>
                 )}
               </div>
 
@@ -179,7 +203,7 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
                 {day.entries.map((entry: any, entryIdx: number) => (
                   <div
                     key={entryIdx}
-                    className={`text-[10px] px-1.5 py-1 rounded border ${getStatusBackground(entry.status || 'paid')}`}
+                    className={`text-xs sm:text-sm px-2 py-1.5 rounded border ${getStatusBackground(entry.status || 'paid')}`}
                     title={`${entry.description || entry.company} - ${formatCurrency(entry.amount)} - ${entry.status === 'paid' ? 'Pago' : 'Pendente'}`}
                   >
                     <div className="flex items-center gap-1 justify-between">
@@ -189,7 +213,7 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
                           {entry.description || entry.company || 'Sem descrição'}
                         </span>
                       </div>
-                      <span className={`text-[9px] px-1 rounded ${
+                      <span className={`text-[10px] sm:text-xs px-1 rounded ${
                         entry.status === 'paid'
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                           : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
@@ -197,7 +221,7 @@ export function FinanceCalendar({ entries, startDate, endDate }: FinanceCalendar
                         {entry.status === 'paid' ? '✓' : '○'}
                       </span>
                     </div>
-                    <div className={`font-semibold mt-0.5 ${getAmountColor(entry.type)}`}>
+                    <div className={`font-semibold mt-0.5 text-xs sm:text-sm truncate ${getAmountColor(entry.type)}`}>
                       {formatCurrency(entry.amount)}
                     </div>
                   </div>
