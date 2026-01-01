@@ -13,7 +13,15 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(pnpm run dev:*)",
       "Bash(dir:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(TURBOPACK=0 npm run build:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm update:*)"
     ]
   }
 }

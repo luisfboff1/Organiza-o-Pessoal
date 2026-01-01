@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createPage } from '@/features/pages/actions/create-page';
 import { formatDate } from '@/lib/utils';
 import type { Database } from '@/types/database.types';
+import { ImportNotionButton } from '@/features/pages/components/ImportNotionButton';
 
 type Page = Database['public']['Tables']['pages']['Row'];
 
@@ -37,9 +38,12 @@ export default async function WorkspacePage({
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Páginas</h1>
-          <form action={handleCreatePage}>
-            <Button type="submit">+ Nova Página</Button>
-          </form>
+          <div className="flex gap-2">
+            <ImportNotionButton workspaceId={workspaceId} />
+            <form action={handleCreatePage}>
+              <Button type="submit">+ Nova Página</Button>
+            </form>
+          </div>
         </div>
 
         {pages && pages.length > 0 ? (

@@ -15,7 +15,12 @@ export async function updatePage(data: {
   parentId?: string;
   archived?: boolean;
 }) {
-  const supabase = await createServerClient();
+  const supabase = await createServerClient() as any;
+
+  // Se está atualizando conteúdo, criar versão antes
+  if (data.contentJson !== undefined || data.contentText !== undefined) {
+    await createPageVersion(data.pageId, supabase);
+  }
 
   const updateData: Record<string, any> = {};
   if (data.title !== undefined) updateData.title = data.title;
@@ -26,7 +31,7 @@ export async function updatePage(data: {
   if (data.parentId !== undefined) updateData.parent_id = data.parentId;
   if (data.archived !== undefined) updateData.archived = data.archived;
 
-  const { data: page, error } = await (supabase as any)
+  const { data: page, error } = await supabase
     .from('pages')
     .update(updateData)
     .eq('id', data.pageId)
@@ -40,4 +45,48 @@ export async function updatePage(data: {
   revalidatePath(`/${data.workspaceId}`);
   revalidatePath(`/${data.workspaceId}/pages/${data.pageId}`);
   return page;
+}
+
+/**
+ * Cria uma versão da página antes de atualizar
+ */
+async function createPageVersion(pageId: string, supabase: any) {
+  try {
+    // Buscar versão atual da página
+    const { data: currentPage, error: pageError } = await supabase
+      .from('pages')
+      .select('content_json, content_text')
+      .eq('id', pageId)
+      .single();
+
+    if (pageError || !currentPage) {
+      console.error('Error fetching current page for versioning:', pageError);
+      return;
+    }
+
+    // Obter usuário atual
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return;
+    }
+
+    // Criar versão no banco de dados
+    // @ts-ignore - page_versions table exists but types not yet regenerated
+    const { error: versionError } = await supabase.from('page_versions').insert({
+      page_id: pageId,
+      content_json: currentPage.content_json,
+      content_text: currentPage.content_text,
+      created_by: user.id,
+    });
+
+    if (versionError) {
+      console.error('Error creating page version:', versionError);
+    }
+  } catch (error) {
+    console.error('Error in createPageVersion:', error);
+    // Não falhar a atualização se criar versão falhar
+  }
 }

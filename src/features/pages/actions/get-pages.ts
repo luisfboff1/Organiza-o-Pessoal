@@ -3,7 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 
 export async function getPages(workspaceId: string) {
-  const supabase = await createServerClient();
+  const supabase = await createServerClient() as any;
 
   const { data: pages, error } = await supabase
     .from('pages')
@@ -20,7 +20,7 @@ export async function getPages(workspaceId: string) {
 }
 
 export async function getPage(pageId: string) {
-  const supabase = await createServerClient();
+  const supabase = await createServerClient() as any;
 
   const { data: page, error } = await supabase
     .from('pages')

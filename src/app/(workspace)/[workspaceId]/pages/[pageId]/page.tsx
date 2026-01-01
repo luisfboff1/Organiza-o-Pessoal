@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { PageEditor } from '@/features/pages/components/PageEditor';
 import { PageTitle } from '@/features/pages/components/PageTitle';
+import { ExportMenu } from '@/features/pages/components/ExportMenu';
 import { notFound } from 'next/navigation';
 import { updatePage } from '@/features/pages/actions/update-page';
 import type { Database } from '@/types/database.types';
@@ -38,11 +39,29 @@ export default async function PageView({
     });
   }
 
+  async function updateIcon(icon: string | null) {
+    'use server';
+    const params_await = await params;
+
+    await updatePage({
+      pageId: params_await.pageId,
+      workspaceId: params_await.workspaceId,
+      icon: icon ?? undefined,
+    });
+  }
+
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <div className="border-b px-8 py-4">
-        <PageTitle defaultValue={page.title} onUpdate={updateTitle} />
+      <div className="border-b px-8 py-4 flex items-center justify-between gap-4">
+        <PageTitle
+          defaultValue={page.title}
+          icon={page.icon}
+          pageId={page.id}
+          onUpdate={updateTitle}
+          onIconUpdate={updateIcon}
+        />
+        <ExportMenu pageId={page.id} variant="ghost" size="sm" />
       </div>
 
       {/* Editor */}

@@ -11,7 +11,7 @@ export async function createPage(data: {
   title: string;
   parentId?: string;
 }): Promise<Page> {
-  const supabase = await createServerClient();
+  const supabase = await createServerClient() as any;
 
   const { data: page, error } = await supabase
     .from('pages')
@@ -23,7 +23,7 @@ export async function createPage(data: {
       content_text: '',
     } as any)
     .select()
-    .single<Page>();
+    .single();
 
   if (error) {
     throw new Error(error.message);

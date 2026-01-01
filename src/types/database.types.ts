@@ -52,6 +52,11 @@ export interface Database {
           source: string | null
           source_id: string | null
           archived: boolean
+          position: number
+          is_folder: boolean
+          template_id: string | null
+          import_source: string | null
+          import_metadata: Json
           created_at: string
           updated_at: string
         }
@@ -67,6 +72,11 @@ export interface Database {
           source?: string | null
           source_id?: string | null
           archived?: boolean
+          position?: number
+          is_folder?: boolean
+          template_id?: string | null
+          import_source?: string | null
+          import_metadata?: Json
           created_at?: string
           updated_at?: string
         }
@@ -82,6 +92,11 @@ export interface Database {
           source?: string | null
           source_id?: string | null
           archived?: boolean
+          position?: number
+          is_folder?: boolean
+          template_id?: string | null
+          import_source?: string | null
+          import_metadata?: Json
           created_at?: string
           updated_at?: string
         }
@@ -257,6 +272,96 @@ export interface Database {
           source_id?: string | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      page_links: {
+        Row: {
+          id: string
+          source_page_id: string
+          target_page_id: string
+          link_type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          source_page_id: string
+          target_page_id: string
+          link_type?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          source_page_id?: string
+          target_page_id?: string
+          link_type?: string
+          created_at?: string
+        }
+      }
+      page_templates: {
+        Row: {
+          id: string
+          workspace_id: string
+          title: string
+          description: string | null
+          icon: string | null
+          content_json: Json
+          is_default: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          title: string
+          description?: string | null
+          icon?: string | null
+          content_json?: Json
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          title?: string
+          description?: string | null
+          icon?: string | null
+          content_json?: Json
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      page_versions: {
+        Row: {
+          id: string
+          page_id: string
+          title: string
+          content_json: Json
+          content_text: string
+          version_number: number
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          page_id: string
+          title: string
+          content_json: Json
+          content_text: string
+          version_number?: number
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          page_id?: string
+          title?: string
+          content_json?: Json
+          content_text?: string
+          version_number?: number
+          created_at?: string
+          created_by?: string | null
         }
       }
       // Other tables will be added after schema is created

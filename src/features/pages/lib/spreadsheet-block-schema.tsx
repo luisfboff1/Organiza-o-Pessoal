@@ -1,6 +1,7 @@
 import { defaultBlockSpecs } from '@blocknote/core';
 import { createReactBlockSpec } from '@blocknote/react';
 import { SpreadsheetBlock } from '../components/SpreadsheetBlock';
+import { pageLinkBlock } from './page-link-block-schema';
 
 const defaultSpreadsheetData = [
   ['', '', '', '', ''],
@@ -41,8 +42,9 @@ export const spreadsheetBlock = createReactBlockSpec(
   }
 );
 
-// Schema que inclui blocos padrão + bloco de planilha
+// Schema que inclui blocos padrão + blocos customizados
 export const blockSpecs = {
   ...defaultBlockSpecs,
   spreadsheet: spreadsheetBlock,
+  pageLink: pageLinkBlock,
 };
