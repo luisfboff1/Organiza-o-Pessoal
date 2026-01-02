@@ -5,11 +5,12 @@
  */
 
 import { useState } from 'react';
-import { PanelLeftClose, PanelLeft, Plus } from 'lucide-react';
+import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PageTree } from './PageTree';
 import { ImportNotionButton } from './ImportNotionButton';
+import { CreatePageDialog } from './CreatePageDialog';
 import { cn } from '@/lib/utils';
 
 interface PagesSidebarProps {
@@ -55,17 +56,12 @@ export function PagesSidebar({
 
       {/* Actions */}
       <div className="p-2 border-b space-y-2">
-        <Button
+        <CreatePageDialog
+          workspaceId={workspaceId}
           variant="ghost"
           size="sm"
           className="w-full justify-start"
-          asChild
-        >
-          <a href={`/${workspaceId}/pages/new`}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Página
-          </a>
-        </Button>
+        />
         <ImportNotionButton
           workspaceId={workspaceId}
           variant="ghost"

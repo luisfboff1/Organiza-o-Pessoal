@@ -9,9 +9,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronRight, ChevronDown, FileText, Folder, GripVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, GripVertical, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageNode } from '../types';
+import { CreatePageDialog } from './CreatePageDialog';
 
 interface PageTreeNodeProps {
   node: PageNode;
@@ -115,6 +116,27 @@ export function PageTreeNode({
         >
           {node.title}
         </Link>
+
+        {/* Botão criar subpágina (aparece no hover) */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <CreatePageDialog
+            workspaceId={workspaceId}
+            parentId={node.id}
+            parentTitle={node.title}
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            trigger={
+              <button
+                className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"
+                title="Criar subpágina"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            }
+          />
+        </div>
       </div>
 
       {/* Filhos (recursivo) */}
